@@ -2,6 +2,8 @@
 #include <iostream>
 #include <algorithm>
 #include <thread>
+#include <sstream>
+#include <fstream>
 
 Command::Command(const std::string & value) :
 	m_value{ value }
@@ -10,7 +12,6 @@ Command::Command(const std::string & value) :
 
 void Command::execute() const
 {
-	std::this_thread::sleep_for(std::chrono::seconds{ 1 });
 }
 
 const std::string & Command::info() const
@@ -77,6 +78,11 @@ void ContextState::executeBlockImpl(Context & context)
 Context::Context(size_t staticBlockSize) :
 	m_staticBlockMaxSize{ staticBlockSize }
 {
+	if (0 == m_staticBlockMaxSize)
+	{
+		throw std::exception("Invalid static block size");
+	}
+
 	m_state = std::make_unique<BuildingStaticBlock>(*this);
 }
 
@@ -140,7 +146,7 @@ void BuildingDynamicBlock::closeScope(Context & context)
 {
 	if (0 == m_nestingLevel)
 	{
-		throw std::exception{ "No scope was opened" };
+		throw std::exception("No scope was opened");
 	}
 
 	--m_nestingLevel;
@@ -202,7 +208,7 @@ void ReactorAggregation::addReactor(std::unique_ptr<Reactor> && reactor)
 	}
 }
 
-void ReactorAggregation::onBlockExecute(const CommandBlock & bulk) const
+void ReactorAggregation::onBlockExecute(const CommandBlock & bulk)
 {
 	for (const auto & reactor : m_reactors)
 	{
@@ -210,7 +216,7 @@ void ReactorAggregation::onBlockExecute(const CommandBlock & bulk) const
 	}
 }
 
-void ReactorAggregation::onAddCommand(const CommandBlock & bulk) const
+void ReactorAggregation::onAddCommand(const CommandBlock & bulk)
 {
 	for (const auto & reactor : m_reactors)
 	{
@@ -218,7 +224,7 @@ void ReactorAggregation::onAddCommand(const CommandBlock & bulk) const
 	}
 }
 
-void ConsoleLogger::onBlockExecute(const CommandBlock & bulk) const
+void ConsoleLogger::onBlockExecute(const CommandBlock & bulk)
 {
 	if (bulk.numberOfCommands() > 0)
 	{
@@ -239,14 +245,35 @@ void ConsoleLogger::onBlockExecute(const CommandBlock & bulk) const
 	}
 }
 
-void ConsoleLogger::onAddCommand(const CommandBlock &) const
+void ConsoleLogger::onAddCommand(const CommandBlock &)
 {
 }
 
+void FileLogger::onBlockExecute(const CommandBlock & bulk)
+{
+	if (bulk.numberOfCommands() > 0)
+	{
+		if (!m_blockInitTime)
+		{
+			throw std::exception("Invalid block");
+		}
 
+		std::ofstream file{ (std::stringstream{} << "bulk" << m_blockInitTime->count() << ".log").str() };
 
-//if (!m_blockInitTime)
-//{
-//	m_blockInitTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-//		std::chrono::system_clock::now().time_since_epoch());
-//}
+		for (const auto & command : bulk.getCommandList())
+		{
+			file << command << std::endl;
+		}
+
+		m_blockInitTime.reset();
+	}
+}
+
+void FileLogger::onAddCommand(const CommandBlock &)
+{
+	if (!m_blockInitTime)
+	{
+		m_blockInitTime = std::chrono::duration_cast<std::chrono::seconds>(
+			std::chrono::system_clock::now().time_since_epoch());
+	}
+}

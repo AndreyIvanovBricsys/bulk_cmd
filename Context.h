@@ -53,8 +53,8 @@ class Reactor
 public:
 	virtual ~Reactor() = default;
 
-	virtual void onBlockExecute(const CommandBlock &) const = 0;
-	virtual void onAddCommand(const CommandBlock &) const = 0;
+	virtual void onBlockExecute(const CommandBlock &) = 0;
+	virtual void onAddCommand(const CommandBlock &) = 0;
 };
 
 class Context
@@ -113,8 +113,8 @@ class ReactorAggregation : public Reactor
 public:
 	void addReactor(std::unique_ptr<Reactor> && reactor);
 
-	void onBlockExecute(const CommandBlock & bulk) const override;
-	void onAddCommand(const CommandBlock & bulk) const override;
+	void onBlockExecute(const CommandBlock & bulk) override;
+	void onAddCommand(const CommandBlock & bulk) override;
 
 private:
 	std::vector<std::unique_ptr<Reactor>> m_reactors;
@@ -123,12 +123,16 @@ private:
 class ConsoleLogger : public Reactor
 {
 public:
-	void onBlockExecute(const CommandBlock & bulk) const override;
-	void onAddCommand(const CommandBlock &) const override;
+	void onBlockExecute(const CommandBlock & bulk) override;
+	void onAddCommand(const CommandBlock &) override;
 };
 
 class FileLogger : public Reactor
 {
+public:
+	void onBlockExecute(const CommandBlock & bulk) override;
+	void onAddCommand(const CommandBlock &) override;
 
-//	std::optional<std::chrono::milliseconds> m_blockInitTime{ std::nullopt };
+private:
+	std::optional<std::chrono::seconds> m_blockInitTime{ std::nullopt };
 };
