@@ -80,7 +80,7 @@ Context::Context(size_t staticBlockSize) :
 {
 	if (0 == m_staticBlockMaxSize)
 	{
-		throw std::exception("Invalid static block size");
+		throw std::runtime_error("Invalid static block size");
 	}
 
 	m_state = std::make_unique<BuildingStaticBlock>(*this);
@@ -146,7 +146,7 @@ void BuildingDynamicBlock::closeScope(Context & context)
 {
 	if (0 == m_nestingLevel)
 	{
-		throw std::exception("No scope was opened");
+		throw std::runtime_error("No scope was opened");
 	}
 
 	--m_nestingLevel;
@@ -255,7 +255,7 @@ void FileLogger::onBlockExecute(const CommandBlock & bulk)
 	{
 		if (!m_blockInitTime)
 		{
-			throw std::exception("Invalid block");
+			throw std::runtime_error("Invalid block");
 		}
 
 		std::ofstream file{ (std::stringstream{} << "bulk" << m_blockInitTime->count() << ".log").str() };
