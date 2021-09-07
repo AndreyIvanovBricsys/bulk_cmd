@@ -258,7 +258,9 @@ void FileLogger::onBlockExecute(const CommandBlock & bulk)
 			throw std::runtime_error("Invalid block");
 		}
 
-		std::ofstream file{ (std::stringstream{} << "bulk" << m_blockInitTime->count() << ".log").str() };
+		std::stringstream sstr;
+		sstr << "bulk" << m_blockInitTime->count() << ".log";
+		std::ofstream file{ sstr.str() };
 
 		for (const auto & command : bulk.getCommandList())
 		{
